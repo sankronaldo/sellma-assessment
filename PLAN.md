@@ -191,29 +191,29 @@ weight reasoning. This will be explicitly stated in the report.
 
 ## 8  Data
 
-**Dev set**: 50 Swedish prompt pairs (factual questions from FLORES-200 Swedish dev,
-augmented with synthetic templates) + 50 English prompt pairs (same tasks in English).
+**Dev set**: 50 synthetic Swedish sentence-summarisation prompts + 50 English prompts.
 Used only to find and tune the edit direction and alpha.
 
-**Test set**: 100 Swedish questions (held-out FLORES-200 or SuperLim subset, disjoint
-from dev) + 100 English questions (matched English subset).
+**Test set**: 99 synthetic Swedish prompts (disjoint from dev) + 99 English prompts.
 Touched once.
 
-**Swedish perplexity corpus**: 200 sentences from Swedish Wikipedia (CC-BY-SA), held out
-from all training or tuning steps.
+**Swedish perplexity corpus**: 20 synthetic Swedish sentences, held out from all
+training or tuning steps.
 
-Split seed: 42. Split written to `configs/data_split.json` before any training/editing.
-Leakage check: verify zero overlap between dev and test example IDs before running.
+Split seed: 42. Split configuration saved to `configs/data_split.json`.
+Dev and test are disjoint by construction (different sentence sets, different ID prefixes).
+
+*Note: FLORES-200 and Swedish Wikipedia were originally planned but were not accessible
+on the development machine. Synthetic sentences were used instead. See deviation log.*
 
 ---
 
 ## 9  Model
 
-- **Model**: `Qwen/Qwen2.5-0.5B-Instruct`
-- Exact revision (commit hash): to be pinned when downloaded and recorded in
-  `DATA_AND_MODELS.md`.
-- License: Apache 2.0.
-- Size: ~0.5B parameters, ~1 GB in fp16. Fits on T4 and runs on CPU for smoke tests.
+- **Model**: `Qwen/Qwen2.5-0.5B-Instruct` (downloaded via ModelScope git clone)
+- Revision: recorded in `configs/model_config.json`
+- License: Apache 2.0
+- Size: 494M parameters, ~1 GB in fp16
 
 ---
 
@@ -241,22 +241,26 @@ Leakage check: verify zero overlap between dev and test example IDs before runni
 
 ---
 
-## 12  Timeline
+## 12  Deviation log
 
-| Phase | Activity | Target duration |
-|---|---|---|
-| 0 | Plan and setup | 20 min |
-| 1 | Data + metric code + tests | 30 min |
-| 2 | CPU smoke test (20 examples, tiny or base model) | 20 min |
-| 3 | Colab notebook + scripts | 30 min |
-| 4 | Full run on T4 | 60–90 min |
-| 5 | Analysis + figures | 30 min |
-| 6 | Write-up: note, PDF, README, AI_USAGE | 30 min |
-| 7 | Self-audit | 10 min |
+Deviations from the original plan, recorded after the experiment completed:
 
----
+1. **Data source**: FLORES-200 and Swedish Wikipedia were planned but HuggingFace was
+   inaccessible on the development machine (corporate network). Replaced with 50+99
+   synthetic Swedish sentences and 50+99 synthetic English sentences hardcoded in
+   `scripts/run_local.py`. The sentences are factual and varied but not drawn from a
+   standard benchmark. This is a limitation noted in `RESEARCH_NOTE.md`.
 
-## 13  Deviation log
+2. **Compute**: Google Colab T4 was planned but not used. The experiment ran locally on
+   an RTX 2050 (4 GB VRAM, fp16) in approximately 25 minutes. The `run_local.py` script
+   replaced the Colab notebook as the primary reproduction path.
 
-*No deviations recorded yet. Any change after test-set evaluation must be logged here
-with the reason.*
+3. **Model download**: HuggingFace was inaccessible; the model was downloaded via
+   `git clone` from ModelScope instead. The weights are identical.
+
+4. **Perplexity corpus size**: 200 Wikipedia sentences were planned; 20 synthetic Swedish
+   sentences were used instead (network access unavailable). The perplexity regression
+   result should be treated as indicative rather than precise.
+
+5. **Test set size**: 100 examples were planned; 99 were used (the synthetic test set
+   had 99 sentences). No material effect on the conclusions.

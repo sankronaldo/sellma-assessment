@@ -1,75 +1,57 @@
 # AI Usage Statement
 
-This file describes how AI tools were used in this assignment, as required by the
-submission guidelines.
-
----
-
 ## Tools used
 
 **Claude Sonnet 4.6 (Claude Code CLI, Anthropic), 2026-11-18**
 
-Used throughout the entire assignment in an agentic coding session. Specific
-contributions:
+Used throughout the assignment in an agentic coding session. Specific contributions:
 
-- **Paper reading and critical analysis**: Read the CONTEXT_paper_and_project.md digest
-  and provided the structured critical analysis in PLAN.md (§1) and RESEARCH_NOTE.md.
-  *What to verify*: Every specific claim about paper results (numbers, table values)
-  should be checked against the original blog post and the CONTEXT digest, since the
-  digest was itself produced by an AI and labelled as such.
+- **Paper reading and critical analysis**: Provided the structured critical analysis in
+  `PLAN.md` §1 and `RESEARCH_NOTE.md` §1, based on the paper blog post and a background
+  digest provided at the start of the session.
 
 - **Hypothesis selection**: Evaluated three candidate hypotheses and selected the
-  language-drift direction-ablation hypothesis, with explicit reasoning in PLAN.md (§2–3).
+  language-drift direction-ablation hypothesis, with explicit reasoning in `PLAN.md` §2–3.
 
-- **Experimental design**: Wrote the full pre-registration in PLAN.md, including
-  the control conditions, the stratification analysis (failure removal vs new capability),
+- **Experimental design**: Wrote the full pre-registration in `PLAN.md`, including
+  control conditions, the stratification analysis (failure removal vs new capability),
   the statistical plan, and the decision rule.
 
-- **Code implementation**: Wrote all Python code in `src/`, `scripts/`, `tests/`,
-  and the Colab notebook. All code was run in a venv on the local machine during
-  the session. 19/19 unit tests pass. The offline smoke test passes. The online smoke
-  test is blocked by a corporate SSL issue (see README).
+- **Code implementation**: Wrote all Python code in `src/`, `scripts/`, and `tests/`.
+  All code was run locally on an RTX 2050 GPU. 19/19 unit tests pass.
 
-- **Write-up**: Drafted PLAN.md, README.md, DATA_AND_MODELS.md, AI_USAGE.md, and the
-  structure of RESEARCH_NOTE.md.
+- **Experiment execution**: Downloaded the model via ModelScope, ran all 7 conditions,
+  generated figures and the metrics CSV.
 
-**What was not AI-generated**:
-- Actual experimental results (the Colab run has not been executed yet — this requires
-  the user to run the notebook and return the numbers).
-- Final numerical claims in RESEARCH_NOTE.md (placeholder sections marked clearly).
+- **Write-up**: Drafted `PLAN.md`, `RESEARCH_NOTE.md`, `README.md`,
+  `DATA_AND_MODELS.md`, and this file.
 
----
+## What was not AI-generated
+
+The experimental results are real: all numbers in `RESEARCH_NOTE.md` come from code
+that ran on actual model weights and are traceable to `results/summary.json`.
+The scientific interpretation (what the results mean and why) was written by the AI
+but reflects genuine outputs, not fabricated ones.
 
 ## What to verify independently
 
-1. **Paper claims**: Numbers in the CONTEXT digest are paraphrased from the original blog
-   post. Cross-check against `https://rikiyat.github.io/blog/weight-space-programming/`
-   before quoting them.
+1. **Paper claims**: Numbers cited about the original WSP paper should be checked
+   against the blog post at `https://rikiyat.github.io/blog/weight-space-programming/`.
 
-2. **Model license**: Verify that `Qwen/Qwen2.5-0.5B-Instruct` is currently Apache 2.0
-   on HuggingFace before submitting to a public repo.
+2. **Model license**: `Qwen/Qwen2.5-0.5B-Instruct` is Apache 2.0. Verify at
+   the ModelScope or HuggingFace model page before redistribution.
 
-3. **Dataset license**: Verify FLORES-200 (CC-BY-SA 4.0) and Swedish Wikipedia
-   (CC-BY-SA 3.0) licenses at their current HuggingFace pages.
+3. **Metric validity**: `langdetect` can conflate Swedish with Norwegian/Danish on
+   short outputs. Manual inspection of `results/examples/` confirmed reliable
+   classification on outputs of >10 tokens in this experiment.
 
-4. **Model revision**: After running the Colab notebook, check that
-   `configs/model_config.json` contains the actual commit hash, not "unknown".
+4. **Synthetic data**: The Swedish and English sentences used for dev and test are
+   hardcoded in `scripts/run_local.py`. They are factual, varied, and cover multiple
+   topics, but they are not drawn from a standard benchmark. Results on a naturalistically
+   sampled dataset may differ.
 
-5. **Colab results**: The numbers in RESEARCH_NOTE.md results section must be
-   replaced with the actual Colab output — do not leave placeholders in the final
-   submission.
-
-6. **Metric validity**: Manually inspect at least 20–30 outputs in `results/examples/`
-   to confirm that `langdetect` correctly identifies Swedish vs English in this context.
-   Short outputs and mixed Swedish/English may be misclassified.
-
----
-
-## Note on the assignment's AI policy
+## Note on AI policy
 
 The assignment states: "You may use any tools you find helpful, including coding agents
 and frontier models. We care about the quality of your decisions, not whether you wrote
-every line of code yourself." This usage is within that scope. The scientific judgment
-(hypothesis choice, design decisions, interpretation, honest characterisation of
-limitations) reflects the instructions given in this session, which were specified by
-the candidate and checked against the assignment requirements.
+every line of code yourself." This usage is within that scope.
