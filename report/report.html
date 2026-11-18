@@ -1,0 +1,405 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<style>body{font-family:Georgia,serif;max-width:800px;margin:40px auto;line-height:1.6;font-size:14px}
+h1,h2,h3{color:#222}table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #ccc;padding:6px 10px}th{background:#f0f0f0}
+pre{background:#f8f8f8;padding:10px;overflow:auto}
+</style></head><body><h1>Research Note: Weight-Space Programming for Swedish Language Models</h1>
+
+<p><strong>Author</strong>: SE.LLMA candidate assignment submission, 2026-11-18<br />
+<strong>Model</strong>: Qwen2.5-0.5B-Instruct (ModelScope git clone, fp16, RTX 2050)<br />
+<strong>Task</strong>: Does direction-ablation weight editing reduce Swedish language drift, and does
+any improvement reflect failure removal rather than new capability?</p>
+
+<hr />
+
+<h2>1. Critical Reading of the Paper</h2>
+
+<p>"Sparks of Weight-Space Programming" (Takehi et al., MIT CSAIL, blog post 2026-11-02)
+claims a frontier LLM can read and write neural network weights without gradient training,
+calling this Weight-Space Programming (WSP). The authors clarify in a Nov 12 addendum
+that this describes an emerging capability, not a proposed method.</p>
+
+<p><strong>Strongest evidence.</strong> Experiment 3 (induction heads) is the most rigorous result: a
+frontier LLM identified specific induction heads by composing attention weight matrices
+— a known interpretability technique — without running the target networks. Ground truth
+was measured independently and matched exactly in all three models. Experiment 7's honest
+negative (direct weight reading failed; activation patterns were needed) clearly marks
+where weight-only reasoning stopped working. Public log and weight release enables
+independent checking.</p>
+
+<p><strong>Most important limitations.</strong> The headline result, Experiment 8 (Qwen3.5-0.8B math),
+uses up to 50 forward-pass feedback rounds — an LLM-driven search loop over weight edits.
+"No gradients" does not mean "no feedback optimization". The 50-pass condition (+40 pp
+MATH-500) is feedback search, not weight-space reasoning. The base model loops on 93% of
+answers under the stated sampling settings; any edit that stops looping will produce a
+large apparent improvement. No controls are reported: no random-direction edit, no
+inference fix (repetition penalty, non-thinking mode), no LoRA baseline. The one
+additional real LLM tested (Gemma 270M) was a null result, supporting the authors' own
+conclusion that edits remove failures rather than add capabilities. All convincing
+direct-weight-reasoning results (Exps 1–5) use purpose-built networks under 1.5M
+parameters.</p>
+
+<p><strong>What is and is not established.</strong> Justified: a frontier LLM can recover facts from
+small network weights; a small edit can remove one specific looping bug. Not established:
+the edit is better than inference fixes or LoRA; the method is "reasoning" rather than
+feedback search; any result transfers to Swedish or to production-scale models.</p>
+
+<p>The key distinction the assignment asks about: Exps 1–5 are direct weight reasoning
+(one shot, no network runs). Exps 6 and 8 are feedback optimization (iterative model
+evaluation without gradients — still search). The paper conflates these modes.</p>
+
+<hr />
+
+<h2>2. Hypothesis and Relevance to SE.LLMA</h2>
+
+<p><strong>H</strong>: In Qwen2.5-0.5B-Instruct, language drift (responding in English to Swedish
+prompts) can be reduced by a targeted weight edit derived from activation analysis. Any
+improvement in Swedish-task accuracy will be explained primarily by <em>failure removal</em>
+(examples where the model answered correctly in content but in English) rather than new
+Swedish capability.</p>
+
+<p><strong>Why it matters for SE.LLMA.</strong> SE.LLMA fine-tunes existing open multilingual models
+for Swedish. Language drift is a known operational failure: a model that understands
+Swedish but responds in English is unusable. If targeted weight edits reliably prevent
+drift at negligible cost, they could inform the project's adaptation strategy. If not —
+or if prompting achieves the same result at no cost — that is equally useful information.</p>
+
+<p><strong>Pre-registered criteria.</strong> Support: edit improves lang-ID by &gt;10 pp over baseline,
+CI excludes 0, exceeds random-direction control by &gt;5 pp. Refute: edit within noise of
+random control, or prompt-only baseline matches or exceeds edit. Failure-removal
+prediction: improvement concentrates in Stratum B (C0 drifted to English), not
+Stratum A (C0 already Swedish).</p>
+
+<hr />
+
+<h2>3. Experiment</h2>
+
+<p><strong>Model.</strong> <code>Qwen/Qwen2.5-0.5B-Instruct</code> (Apache 2.0), downloaded via ModelScope git
+clone (see <code>configs/model_config.json</code> for revision), loaded in fp16 on RTX 2050 (4 GB
+VRAM). Greedy decoding, max 60 new tokens.</p>
+
+<p><strong>Data.</strong> 50 synthetic Swedish + 50 English sentence pairs for development; 99 synthetic
+Swedish + 99 English for testing (disjoint by construction, seed 42, saved to
+<code>configs/data_split.json</code>). Task: sentence summarisation prompts. 20 Swedish Wikipedia
+sentences as a held-out perplexity corpus.</p>
+
+<p><strong>Edit method.</strong> Direction finding is feedback-based (50+50 dev forward passes, declared):
+mean activation difference (Swedish – English) at each transformer layer. The layer
+whose MLP down-projection columns most align with the direction is selected (layer 23,
+the last layer, by alignment score). Alpha tuned on dev language-ID accuracy over
+{0.5, 1.0, 2.0}; best alpha = 0.5. The edit subtracts <code>0.5 × d/‖d‖</code> from the top-64
+MLP down-projection columns at layer 23 — 8,192 parameters, 0.0017% of model weights.
+Applied once, no feedback. This is direct weight surgery applied after a feedback-based
+direction search.</p>
+
+<p><strong>Conditions</strong> (all evaluated under identical decoding on the same 99 test examples):</p>
+
+<table>
+<thead>
+<tr>
+  <th>ID</th>
+  <th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>C0</td>
+  <td>No system prompt (baseline)</td>
+</tr>
+<tr>
+  <td>C1</td>
+  <td>Swedish system prompt: "Svara alltid på svenska"</td>
+</tr>
+<tr>
+  <td>C2</td>
+  <td>Stronger Swedish instruction prompt</td>
+</tr>
+<tr>
+  <td>C3</td>
+  <td>Targeted direction-ablation edit (chosen on dev)</td>
+</tr>
+<tr>
+  <td>C4</td>
+  <td>Random-direction edits, 5 seeds, matched magnitude and layer</td>
+</tr>
+<tr>
+  <td>C5</td>
+  <td>Sign-flipped edit (opposite direction)</td>
+</tr>
+<tr>
+  <td>C6</td>
+  <td>LoRA fine-tuning on same 50 dev examples (2 epochs, r=8)</td>
+</tr>
+</tbody>
+</table>
+
+<hr />
+
+<h2>4. Results</h2>
+
+<h3>4.1 Main results table</h3>
+
+<table>
+<thead>
+<tr>
+  <th>Condition</th>
+  <th>n</th>
+  <th>Lang-ID%</th>
+  <th>95% CI</th>
+  <th>PPL_sv</th>
+  <th>EN%</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>C0 baseline</td>
+  <td>99</td>
+  <td><strong>97.98%</strong></td>
+  <td>[94.9, 100]</td>
+  <td>541.7</td>
+  <td>100.0%</td>
+</tr>
+<tr>
+  <td>C1 sys prompt</td>
+  <td>99</td>
+  <td><strong>100.00%</strong></td>
+  <td>[100, 100]</td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td>C2 strong prompt</td>
+  <td>99</td>
+  <td><strong>98.99%</strong></td>
+  <td>[97.0, 100]</td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td>C3 direction ablation</td>
+  <td>99</td>
+  <td><strong>96.97%</strong></td>
+  <td>[92.9, 100]</td>
+  <td>910.3</td>
+  <td>97.98%</td>
+</tr>
+<tr>
+  <td>C4 random (mean ± SD)</td>
+  <td>99×5</td>
+  <td><strong>97.78% ± 0.99%</strong></td>
+  <td>—</td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td>C5 sign-flipped</td>
+  <td>99</td>
+  <td><strong>90.91%</strong></td>
+  <td>[84.8, 96.0]</td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+<tr>
+  <td>C6 LoRA (2 epochs, r=8)</td>
+  <td>99</td>
+  <td><strong>100.00%</strong></td>
+  <td>[100, 100]</td>
+  <td>—</td>
+  <td>—</td>
+</tr>
+</tbody>
+</table>
+
+<p><em>All numbers from <code>results/summary.json</code>. Bootstrap CI: 1000 resamples, seed 0.</em></p>
+
+<h3>4.2 Edit accounting</h3>
+
+<p>Layer 23 (final transformer layer), alpha = 0.5, 64 columns edited.
+Parameters changed: 8,192 / 494,032,768 total (0.0017%).</p>
+
+<h3>4.3 Failure removal analysis (C3 vs C0)</h3>
+
+<table>
+<thead>
+<tr>
+  <th>Stratum</th>
+  <th>Description</th>
+  <th>n</th>
+  <th>C0 Swedish%</th>
+  <th>C3 Swedish%</th>
+  <th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>A</td>
+  <td>C0 already Swedish</td>
+  <td>97</td>
+  <td>100%</td>
+  <td>97.94%</td>
+  <td><strong>−2.06 pp</strong></td>
+</tr>
+<tr>
+  <td>B</td>
+  <td>C0 drifted to English</td>
+  <td>2</td>
+  <td>0%</td>
+  <td>50%</td>
+  <td>+50 pp</td>
+</tr>
+</tbody>
+</table>
+
+<p>Net: the edit fixed 1 of 2 drift cases (+1) but harmed 2 previously-correct cases (−2).
+Overall: −1 correct responses after editing.</p>
+
+<h3>4.4 Figures</h3>
+
+<p>See <code>results/figures/lang_id_comparison.png</code> and <code>results/figures/stratification.png</code>.</p>
+
+<h3>4.5 Qualitative inspection</h3>
+
+<p><strong>C0 baseline — 2 drift cases (Stratum B):</strong></p>
+
+<ul>
+<li><code>test_sv_96</code> (Lucia prompt): model responds <em>"I'll do my best to provide an appropriate
+response in Swedish for you. However, I must clarify that the text you provided is not
+clear..."</em> — metacommentary in English, refuses the task.</li>
+<li><code>test_sv_98</code> (harvest festival prompt): model treats the task as translation and
+responds <em>"The Swedish translation of 'Skördefesten...' is: 'The autumn sports
+festival...'"</em> — task misunderstanding, full English response.</li>
+</ul>
+
+<p>Both drift cases are edge-case prompts where the model misunderstood the instruction.</p>
+
+<p><strong>C3 edit — 2 new harms (Stratum A regressions):</strong></p>
+
+<ul>
+<li><code>test_sv_54</code> (NEW harm): model responds <em>"The man builds a wall with bricks and
+stones. I'll do my best to translate this into English..."</em> — the edit introduced the
+same English-metacommentary failure that was already the base model's failure mode.</li>
+<li><code>test_sv_70</code> (NEW harm): garbled mixed-language output, response became unusable.</li>
+</ul>
+
+<p>The edit introduced the same type of failure it was meant to fix. This is consistent
+with a disruption of the model's language-of-response mechanism that pushed some
+previously-stable examples toward the existing failure mode.</p>
+
+<p>Manual inspection of 20 outputs confirmed <code>langdetect</code> reliably identifies Swedish vs
+English on responses &gt;10 tokens. Full examples in <code>results/examples/</code>.</p>
+
+<hr />
+
+<h2>5. Interpretation</h2>
+
+<p><strong>Primary finding: the edit does not improve language-of-response.</strong> C3 (96.97%) is
+<em>worse</em> than C0 (97.98%) by 1 percentage point. The difference falls within the
+confidence intervals (CI overlap completely), but the direction is against the
+hypothesis. The edit cannot be said to improve language drift.</p>
+
+<p><strong>The edit performs worse than random noise.</strong> C4 (97.78% ± 0.99%) is better than C3
+(96.97%), indicating the targeted direction has no specific benefit over a random edit
+of matched magnitude.</p>
+
+<p><strong>The direction is real but the edit is non-specific.</strong> C5 (sign-flipped, 90.91%) is
+significantly worse than both C0 and C3, confirming the found direction has genuine
+semantic content — it is not random noise. However, both the forward (C3) and reverse
+(C5) directions of the edit degrade the model, with the reverse being more damaging.
+This is consistent with a model that is already well-calibrated: any perturbation to
+the final-layer MLP output projection disrupts the delicate balance of language
+activations, regardless of direction.</p>
+
+<p><strong>Large perplexity regression.</strong> The edit increased Swedish perplexity from 541.7 to
+910.3 (+68%), a substantial degradation in language modeling quality not visible in the
+primary metric. This confirms the edit is disruptive.</p>
+
+<p><strong>Failure removal or new capability? Failure removal — but the wrong failure.</strong>
+Stratum B (the 2 drift cases) shows partial recovery (50%), consistent with the
+failure-removal framing. But Stratum A shows the edit also <em>induces</em> a failure in 2
+previously-correct cases. This is the opposite of targeted failure removal: the method
+removes some drift while simultaneously introducing new errors in the majority class.</p>
+
+<p><strong>Prompting is strictly better.</strong> C1 (system prompt "Svara alltid på svenska") achieves
+100% with no side effects, is costless, and reversible. It is the correct intervention
+for language drift at this scale.</p>
+
+<p><strong>Direct weight reasoning vs feedback optimization.</strong> The direction-finding step ran 100
+dev forward passes — this is feedback-based. The weight surgery itself (a one-shot edit)
+is direct. The combined method is a hybrid, and cannot be described as "weight-space
+reasoning" in the paper's strong sense. It is equivalent to activation steering with a
+one-shot implementation.</p>
+
+<hr />
+
+<h2>6. Limitations</h2>
+
+<ul>
+<li><p><strong>Single model and task.</strong> Qwen2.5-0.5B-Instruct on summarisation prompts. Results
+do not generalize to larger models, instruction-following tasks, or conversational
+settings where drift rates may differ.</p></li>
+<li><p><strong>Minimal drift in baseline.</strong> Only 2/99 examples drifted at all, leaving almost no
+room for improvement. The experiment is underpowered for detecting drift reduction.
+A more informative experiment would need a model with higher baseline drift (or a
+task / prompting setup that elicits more drift).</p></li>
+<li><p><strong>Synthetic data.</strong> The Swedish sentences were generated by the researcher. They are
+well-formed but lack the distributional diversity of real-world Swedish text. Drift
+patterns may differ on naturally occurring prompts.</p></li>
+<li><p><strong>Layer selection heuristic.</strong> The alignment score used to rank layers is a heuristic;
+the best layer for drift correction may not be the one with highest weight alignment.
+Only the top-1 layer was edited.</p></li>
+<li><p><strong>Feedback-based direction finding.</strong> The method requires model runs and cannot be
+replicated without access to the model. It is not "direct weight reasoning".</p></li>
+<li><p><strong>Metric validity.</strong> <code>langdetect</code> can conflate Swedish with Norwegian/Danish. 2 of
+the C3 Stratum A regressions may be classifier errors rather than actual language
+changes. This is noted but does not change the conclusion.</p></li>
+<li><p><strong>Scale.</strong> A 0.5B model is at the small end of practical LLMs. Drift patterns and
+edit sensitivity may differ at 7B+.</p></li>
+</ul>
+
+<hr />
+
+<h2>7. Recommendation</h2>
+
+<p><strong>Do not pursue direction-ablation weight editing for language drift at this scale.</strong></p>
+
+<p>The evidence gives three reasons:</p>
+
+<ol>
+<li>The intervention failed: C3 performed worse than C0 on the primary metric and caused
+a large perplexity regression.</li>
+<li>The intervention is unnecessary: a system prompt achieves 100% language-ID accuracy
+with no side effects. For language-of-response failures, prompting is the correct fix.</li>
+<li>The method has no specific advantage: C3 performed worse than random edits (C4),
+indicating the targeted direction does not confer a benefit.</li>
+</ol>
+
+<p><strong>What the C5 result adds.</strong> The sign-flipped edit was significantly more damaging
+(90.91%), confirming the found direction has semantic content. The model is sensitive
+to perturbations of the final-layer MLP output projection in both directions. This
+suggests the layer is load-bearing and not safely editable with this method.</p>
+
+<p><strong>The most informative next experiment.</strong> The paper's most credible result (Exp 8) was
+on a model with a specific, documented failure mode (looping) that the edit directly
+targeted. The analogous experiment for SE.LLMA would be: take a base multilingual model
+(not instruction-tuned) where drift is severe and consistent, identify the drift as a
+specific mechanistic failure, and test whether a targeted edit removes it without
+degrading capabilities. This requires:</p>
+
+<ol>
+<li>A model with high baseline drift (&gt;30%): test with a base model (not instruct-tuned)
+or a model fine-tuned on a narrow domain that induces drift.</li>
+<li>A mechanistic analysis of <em>why</em> the model drifts (which layers, which attention
+heads, whether it is a residual-stream direction or a specific circuit).</li>
+<li>Proper controls: random direction, inference fix, LoRA on matched data.</li>
+</ol>
+
+<p>The WSP paper's framing is most applicable when there is a clear, localised failure
+mode. When the baseline model already behaves well (as here), weight editing adds risk
+without benefit.</p>
+
+<p><strong>Null result value for SE.LLMA.</strong> This experiment establishes that for a well-tuned
+small multilingual model on structured Swedish prompts, language drift is rare (2%) and
+addressable by prompting alone. SE.LLMA should not invest in weight-editing approaches
+for language drift correction until a model with a genuine and localized drift failure
+has been identified.</p>
+</body></html>
