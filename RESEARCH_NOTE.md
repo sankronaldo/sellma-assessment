@@ -1,6 +1,6 @@
 # Research Note: Weight-Space Programming for Swedish Language Models
 
-**Author**: SE.LLMA candidate assignment submission, 2026-11-18  
+**Author**: Sankarsh Ravi — SE.LLMA candidate assignment, 2026-11-18  
 **Model**: Qwen2.5-0.5B-Instruct (ModelScope git clone, fp16, RTX 2050)  
 **Task**: Does direction-ablation weight editing reduce Swedish language drift, and does
 any improvement reflect failure removal rather than new capability?
