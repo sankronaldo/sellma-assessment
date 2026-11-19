@@ -26,6 +26,7 @@ def clean(s: str) -> str:
         .replace("…", "...")  # ellipsis
         .replace("→", "->").replace("⇒", "=>")
         .replace("α", "alpha").replace("β", "beta")
+        .replace("χ", "chi").replace("²", "^2")
         .replace("÷", "/")
     )
 

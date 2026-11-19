@@ -82,8 +82,9 @@ sentences as a held-out perplexity corpus.
 mean activation difference (Swedish – English) at each transformer layer. The layer
 whose MLP down-projection columns most align with the direction is selected (layer 23,
 the last layer, by alignment score). Alpha tuned on dev language-ID accuracy over
-{0.5, 1.0, 2.0}; best alpha = 0.5. The edit subtracts `0.5 × d/‖d‖` from the top-64
-MLP down-projection columns at layer 23 — 8,192 parameters, 0.0017% of model weights.
+{0.5, 1.0, 2.0}; best alpha = 0.5. The edit subtracts `0.5 × d/||d||` from the top-64
+MLP down-projection columns at layer 23 — 57,344 parameters, 0.012% of model weights.
+(64 columns × 896 hidden-dim rows; `results/edit_info.json` is authoritative.)
 Applied once, no feedback. This is direct weight surgery applied after a feedback-based
 direction search.
 
@@ -112,25 +113,32 @@ direction search.
 | C2 strong prompt | 99 | **98.99%** | [97.0, 100] | — | — |
 | C3 direction ablation | 99 | **96.97%** | [92.9, 100] | 910.3 | 97.98% |
 | C4 random (mean ± SD) | 99×5 | **97.78% ± 0.99%** | — | — | — |
-| C5 sign-flipped | 99 | **90.91%** | [84.8, 96.0] | — | — |
+| C5 sign-flipped | 99 | **89.90%** | [83.8, 96.0] | — | — |
 | C6 LoRA (2 epochs, r=8) | 99 | **100.00%** | [100, 100] | — | — |
 
-*All numbers from `results/summary.json`. Bootstrap CI: 1000 resamples, seed 0.*
+*All numbers from `results/summary.json` after F1 fix (langdetect seed=0). Bootstrap CI: 1000 resamples, seed 0. Language-ID: `langdetect` with `DetectorFactory.seed=0`; Norwegian (no) and Danish (da) detections counted as correct Swedish due to known langdetect conflation of closely related Nordic languages.*
 
 ### 4.2 Edit accounting
 
 Layer 23 (final transformer layer), alpha = 0.5, 64 columns edited.
-Parameters changed: 8,192 / 494,032,768 total (0.0017%).
+Parameters changed: 57,344 / 494,032,768 total (0.012%).
+(64 columns × 896 hidden-dim rows of `down_proj.weight`. Source: `results/edit_info.json`.)
 
 ### 4.3 Failure removal analysis (C3 vs C0)
 
 | Stratum | Description | n | C0 Swedish% | C3 Swedish% | Change |
 |---|---|---|---|---|---|
 | A | C0 already Swedish | 97 | 100% | 97.94% | **−2.06 pp** |
-| B | C0 drifted to English | 2 | 0% | 50% | +50 pp |
+| B | C0 drifted to English | **2** | 0% | 50% | +50 pp |
+
+*Stratum B: n=2 is a single paired observation and cannot be used to test the failure-removal hypothesis. See §5.*
 
 Net: the edit fixed 1 of 2 drift cases (+1) but harmed 2 previously-correct cases (−2).
 Overall: −1 correct responses after editing.
+
+**Statistical tests (McNemar, pre-registered in PLAN.md §10):**
+- C0 vs C3: b=2, c=1; McNemar χ²=0.33, p=0.56 — C3 not significantly different from C0.
+- C0 vs C5: b=9, c=1; McNemar χ²=6.40, p=0.011 — C5 significantly worse than C0 (α=0.05).
 
 ### 4.4 Figures
 
@@ -176,8 +184,8 @@ hypothesis. The edit cannot be said to improve language drift.
 (96.97%), indicating the targeted direction has no specific benefit over a random edit
 of matched magnitude.
 
-**The direction is real but the edit is non-specific.** C5 (sign-flipped, 90.91%) is
-significantly worse than both C0 and C3, confirming the found direction has genuine
+**The direction is real but the edit is non-specific.** C5 (sign-flipped, 89.90%) is
+significantly worse than C0 (McNemar p=0.011), confirming the found direction has genuine
 semantic content — it is not random noise. However, both the forward (C3) and reverse
 (C5) directions of the edit degrade the model, with the reverse being more damaging.
 This is consistent with a model that is already well-calibrated: any perturbation to
@@ -189,14 +197,15 @@ activations, regardless of direction.
 primary metric. This confirms the edit is disruptive.
 
 **Failure removal or new capability? Failure removal — but the wrong failure.**
-Stratum B (the 2 drift cases) shows partial recovery (50%), consistent with the
-failure-removal framing. But Stratum A shows the edit also *induces* a failure in 2
+Stratum B (n=2) has 1/2 cases recover under C3; with n=2 this is a single observation
+and cannot confirm the failure-removal framing. But Stratum A shows the edit also *induces* a failure in 2
 previously-correct cases. This is the opposite of targeted failure removal: the method
 removes some drift while simultaneously introducing new errors in the majority class.
 
 **Prompting is strictly better.** C1 (system prompt "Svara alltid på svenska") achieves
-100% with no side effects, is costless, and reversible. It is the correct intervention
-for language drift at this scale.
+≥98.99% — likely 100%; one 3-word Swedish response ("Allt är ok.") is borderline for
+`langdetect` and may vary across runs — with no side effects. It is the correct
+intervention for language drift at this scale.
 
 **Direct weight reasoning vs feedback optimization.** The direction-finding step ran 100
 dev forward passes — this is feedback-based. The weight surgery itself (a one-shot edit)
@@ -223,14 +232,17 @@ one-shot implementation.
 
 - **Layer selection heuristic.** The alignment score used to rank layers is a heuristic;
   the best layer for drift correction may not be the one with highest weight alignment.
-  Only the top-1 layer was edited.
+  Only the top-1 layer was edited. The top-layer score (0.036) is only 27% higher than
+  the 10th-place score (0.028); the selection of layer 23 is not strongly distinguished
+  from other layers by this metric.
 
 - **Feedback-based direction finding.** The method requires model runs and cannot be
   replicated without access to the model. It is not "direct weight reasoning".
 
-- **Metric validity.** `langdetect` can conflate Swedish with Norwegian/Danish. 2 of
-  the C3 Stratum A regressions may be classifier errors rather than actual language
-  changes. This is noted but does not change the conclusion.
+- **Metric validity.** `langdetect` is used with `DetectorFactory.seed=0` for
+  determinism. Norwegian (no) and Danish (da) responses are counted as correct Swedish.
+  Manual inspection confirmed both C3 Stratum A regressions (test_sv_54, test_sv_70)
+  are genuine English-language outputs, not classifier errors.
 
 - **Scale.** A 0.5B model is at the small end of practical LLMs. Drift patterns and
   edit sensitivity may differ at 7B+.
@@ -251,7 +263,7 @@ The evidence gives three reasons:
    indicating the targeted direction does not confer a benefit.
 
 **What the C5 result adds.** The sign-flipped edit was significantly more damaging
-(90.91%), confirming the found direction has semantic content. The model is sensitive
+(89.90%, McNemar p=0.011 vs C0), confirming the found direction has semantic content. The model is sensitive
 to perturbations of the final-layer MLP output projection in both directions. This
 suggests the layer is load-bearing and not safely editable with this method.
 

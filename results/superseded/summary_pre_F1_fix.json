@@ -1,0 +1,67 @@
+{
+  "C0_baseline": {
+    "n": 99,
+    "correct": 97,
+    "lang_id_accuracy": 0.9797979797979798,
+    "lang_id_ci_lower": 0.9494949494949495,
+    "lang_id_ci_upper": 1.0,
+    "english_lang_id": 1.0,
+    "perplexity_sv": 541.6917414421445
+  },
+  "C1_sysprompt": {
+    "n": 99,
+    "correct": 99,
+    "lang_id_accuracy": 1.0,
+    "lang_id_ci_lower": 1.0,
+    "lang_id_ci_upper": 1.0
+  },
+  "C2_strong_sysprompt": {
+    "n": 99,
+    "correct": 98,
+    "lang_id_accuracy": 0.98989898989899,
+    "lang_id_ci_lower": 0.9696969696969697,
+    "lang_id_ci_upper": 1.0
+  },
+  "C3_direction_ablation": {
+    "n": 99,
+    "correct": 96,
+    "lang_id_accuracy": 0.9696969696969697,
+    "lang_id_ci_lower": 0.9292929292929293,
+    "lang_id_ci_upper": 1.0,
+    "english_lang_id": 0.9797979797979798,
+    "perplexity_sv": 910.3465459359293,
+    "stratum_A": {
+      "n": 97,
+      "base_lang_correct": 97,
+      "edit_lang_correct": 95,
+      "base_accuracy": 1.0,
+      "edit_accuracy": 0.979381443298969
+    },
+    "stratum_B": {
+      "n": 2,
+      "base_lang_correct": 0,
+      "edit_lang_correct": 1,
+      "base_accuracy": 0.0,
+      "edit_accuracy": 0.5
+    }
+  },
+  "C4_random_control": {
+    "lang_id_accuracy": 0.9777777777777779,
+    "lang_id_std": 0.009896928253669416,
+    "n_seeds": 5
+  },
+  "C5_sign_flipped": {
+    "n": 99,
+    "correct": 90,
+    "lang_id_accuracy": 0.9090909090909091,
+    "lang_id_ci_lower": 0.8484848484848485,
+    "lang_id_ci_upper": 0.9595959595959596
+  },
+  "C6_lora": {
+    "n": 99,
+    "correct": 99,
+    "lang_id_accuracy": 1.0,
+    "lang_id_ci_lower": 1.0,
+    "lang_id_ci_upper": 1.0
+  }
+}

@@ -20,7 +20,8 @@ def detect_language(text: str) -> str:
     if not text or len(text.strip()) < 3:
         return "unknown"
     try:
-        from langdetect import detect, LangDetectException
+        from langdetect import detect, LangDetectException, DetectorFactory
+        DetectorFactory.seed = 0  # make langdetect deterministic (F1 fix)
         try:
             return detect(text)
         except LangDetectException:
