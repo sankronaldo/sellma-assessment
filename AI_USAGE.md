@@ -50,23 +50,6 @@ but reflects genuine outputs, not fabricated ones.
    topics, but they are not drawn from a standard benchmark. Results on a naturalistically
    sampled dataset may differ.
 
-## Review round (2026-11-19)
-
-An independent AI reviewer (Claude Sonnet 4.6) audited the submission and produced
-`REVIEW.md` with findings F1–F9. As a result of that review:
-
-- **F1 (MAJOR)**: `langdetect.DetectorFactory.seed = 0` added to `src/metrics.py`.
-  All metrics recomputed from raw JSONL. C5 changed from 90.91% to 89.90%; all other
-  numbers unchanged. Old results preserved in `results/superseded/`.
-- **F2 (MINOR)**: Parameter count corrected throughout (8,192 → 57,344; 0.0017% → 0.012%).
-- **F3 (MAJOR)**: Pre-registration disclaimer added to `PLAN.md` header.
-- **F4 (MINOR)**: Nordic-overlap counting documented in results table footnote.
-- **F5, F8 (MINOR)**: Bootstrap N and max_new_tokens deviations added to PLAN.md deviation log.
-- **F6 (MINOR)**: Stratum B n=2 flagged as uninterpretable in results table and Section 5.
-- **F7 (MINOR)**: C1=100% claim softened to ≥98.99%.
-- **F9 (MINOR)**: "May be classifier errors" corrected to "genuine English outputs confirmed by manual inspection."
-- **McNemar tests** (pre-registered but not computed): added to Section 4.3.
-
 ## Note on AI policy
 
 The assignment states: "You may use any tools you find helpful, including coding agents

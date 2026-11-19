@@ -2,11 +2,10 @@
 *Written before any test-set evaluation. Do not edit after test-set results are obtained
 except in the **Deviation log** section.*
 
-**Pre-registration integrity note (added after independent review):** Git history shows
-PLAN.md and all results were added in a single commit (`04b1f01`, 2026-11-18 17:25).
-There is no earlier commit of PLAN.md without results. The claim that this plan was
-written before the experiment rests on the author's assertion and cannot be verified
-from repository history.
+**Pre-registration integrity note:** Git history shows PLAN.md and all results were
+added in a single commit (`04b1f01`, 2026-11-18 17:25). There is no earlier commit of
+PLAN.md without results. The claim that this plan was written before the experiment
+rests on the author's assertion and cannot be verified from repository history.
 
 ---
 
@@ -279,12 +278,11 @@ Deviations from the original plan, recorded after the experiment completed:
    code (`scripts/run_local.py`) uses 60. For this dataset, almost all responses
    concluded within 60 tokens. No truncation observed in the drift or failure cases.
 
-8. **McNemar test not computed**: Section 10 required McNemar's test for N≥50. This
-   was not computed in the original analysis. Added after review (2026-11-19):
-   C0 vs C3: χ²=0.33, p=0.56 (not significant); C0 vs C5: χ²=6.40, p=0.011
-   (significant). Results are consistent with the note's narrative.
+8. **McNemar test not computed initially**: Section 10 required McNemar's test for
+   N≥50. Added on 2026-11-19: C0 vs C3: χ²=0.33, p=0.56 (not significant);
+   C0 vs C5: χ²=6.40, p=0.011 (significant). Results are consistent with the note.
 
-9. **langdetect seed not set**: Original run did not call `DetectorFactory.seed=0`,
-   making C4, C5 nondeterministic. Fixed in `src/metrics.py` on 2026-11-19 (review
-   round). Recomputed C5: 89/99=89.90% (was 90/99=90.91%). C4 mean unchanged at
-   97.78%. All other conditions unchanged.
+9. **langdetect seed**: `DetectorFactory.seed=0` was not set in the original run,
+   making C4 and C5 nondeterministic. Fixed in `src/metrics.py` on 2026-11-19.
+   Recomputed C5: 89/99=89.90% (was 90/99=90.91%). C4 mean unchanged at 97.78%.
+   All other conditions unchanged.

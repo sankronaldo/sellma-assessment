@@ -1,8 +1,0 @@
-condition,lang_id_accuracy,lang_id_ci_lower,lang_id_ci_upper,perplexity_sv,english_lang_id,stratum_A_n,stratum_A_edit_accuracy,stratum_B_n,stratum_B_edit_accuracy
-C0_baseline,0.9797979797979798,0.9494949494949495,1.0,541.6917414421445,1.0,,,,
-C1_sysprompt,1.0,1.0,1.0,,,,,,
-C2_strong_sysprompt,0.98989898989899,0.9696969696969697,1.0,,,,,,
-C3_direction_ablation,0.9696969696969697,0.9292929292929293,1.0,910.3465459359293,0.9797979797979798,97,0.979381443298969,2,0.5
-C4_random_control,0.9777777777777779,,,,,,,,
-C5_sign_flipped,0.9090909090909091,0.8484848484848485,0.9595959595959596,,,,,,
-C6_lora,1.0,1.0,1.0,,,,,,

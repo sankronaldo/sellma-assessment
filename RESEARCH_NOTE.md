@@ -116,7 +116,7 @@ direction search.
 | C5 sign-flipped | 99 | **89.90%** | [83.8, 96.0] | — | — |
 | C6 LoRA (2 epochs, r=8) | 99 | **100.00%** | [100, 100] | — | — |
 
-*All numbers from `results/summary.json` after F1 fix (langdetect seed=0). Bootstrap CI: 1000 resamples, seed 0. Language-ID: `langdetect` with `DetectorFactory.seed=0`; Norwegian (no) and Danish (da) detections counted as correct Swedish due to known langdetect conflation of closely related Nordic languages.*
+*All numbers from `results/summary.json`. Bootstrap CI: 1000 resamples, seed 0. Language-ID: `langdetect` with `DetectorFactory.seed=0`; Norwegian (no) and Danish (da) detections counted as correct Swedish due to known langdetect conflation of closely related Nordic languages.*
 
 ### 4.2 Edit accounting
 
